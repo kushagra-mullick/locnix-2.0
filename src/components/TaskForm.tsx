@@ -16,10 +16,27 @@ export default function TaskForm() {
   const [locationInput, setLocationInput] = useState('');
   const [locationError, setLocationError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Handle task creation
-    console.log('Task created:', task);
+  const handleLocationInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value;
+    setLocationInput(input);
+
+    // Try to parse coordinates from input (format: "latitude, longitude")
+    const coords = input.split(',').map(coord => parseFloat(coord.trim()));
+    if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
+      setTask({
+        ...task,
+        location: {
+          latitude: coords[0],
+          longitude: coords[1]
+        }
+      });
+      setLocationError('');
+    } else {
+      // Clear location from task if input is invalid
+      const newTask = { ...task };
+      delete newTask.location;
+      setTask(newTask);
+    }
   };
 
   const getCurrentLocation = () => {
@@ -62,6 +79,47 @@ export default function TaskForm() {
     );
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate required fields
+    if (!task.name?.trim()) {
+      alert('Please enter a task name');
+      return;
+    }
+
+    if (!task.location) {
+      alert('Please enter a valid location (latitude, longitude)');
+      return;
+    }
+
+    // Generate a unique ID for the task
+    const newTask: Task = {
+      id: crypto.randomUUID(),
+      name: task.name,
+      type: task.type || 'Personal',
+      location: task.location,
+      radius: task.radius || 100,
+      notificationTrigger: task.notificationTrigger || 'Entry',
+      priority: task.priority || 'Medium',
+      notes: task.notes,
+      time: task.time,
+      repeat: task.repeat
+    };
+
+    console.log('Task created:', newTask);
+    
+    // Reset form
+    setTask({
+      radius: 100,
+      type: 'Personal',
+      priority: 'Medium',
+      notificationTrigger: 'Entry',
+    });
+    setLocationInput('');
+    alert('Task created successfully!');
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-lg shadow-lg max-w-2xl mx-auto">
       <div className="space-y-4">
@@ -74,6 +132,7 @@ export default function TaskForm() {
             placeholder="Enter task name"
             value={task.name || ''}
             onChange={(e) => setTask({ ...task, name: e.target.value })}
+            required
           />
         </div>
 
@@ -87,6 +146,7 @@ export default function TaskForm() {
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             value={task.type}
             onChange={(e) => setTask({ ...task, type: e.target.value as TaskType })}
+            required
           >
             {taskTypes.map(type => (
               <option key={type} value={type}>{type}</option>
@@ -104,10 +164,11 @@ export default function TaskForm() {
             <div className="flex gap-2">
               <input
                 type="text"
-                placeholder="Enter address or coordinates"
+                placeholder="Enter coordinates (e.g., 51.5074, -0.1278)"
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 value={locationInput}
-                onChange={(e) => setLocationInput(e.target.value)}
+                onChange={handleLocationInput}
+                required
               />
               <button
                 type="button"
@@ -155,6 +216,7 @@ export default function TaskForm() {
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             value={task.notificationTrigger}
             onChange={(e) => setTask({ ...task, notificationTrigger: e.target.value as NotificationTrigger })}
+            required
           >
             {triggers.map(trigger => (
               <option key={trigger} value={trigger}>{trigger}</option>
@@ -172,6 +234,7 @@ export default function TaskForm() {
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             value={task.priority}
             onChange={(e) => setTask({ ...task, priority: e.target.value as Priority })}
+            required
           >
             {priorities.map(priority => (
               <option key={priority} value={priority}>{priority}</option>
